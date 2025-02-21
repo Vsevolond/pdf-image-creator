@@ -14,7 +14,8 @@ struct GalleryImagePicker: UIViewControllerRepresentable {
         var config = PHPickerConfiguration(photoLibrary: .shared())
         
         config.filter = .images
-//        config.selectionLimit = 10
+        config.selection = .ordered
+        config.selectionLimit = 0
         config.preferredAssetRepresentationMode = .current
         
         return config
