@@ -46,7 +46,10 @@ struct GalleryImagePicker: UIViewControllerRepresentable {
         
         func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
             imagePicker.isPresented = false
-            imagePicker.completion(results)
+            
+            if results.count > 0 {
+                imagePicker.completion(results)
+            }
         }
     }
 }

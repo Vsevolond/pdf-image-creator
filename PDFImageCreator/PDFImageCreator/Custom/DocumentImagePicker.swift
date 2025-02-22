@@ -41,7 +41,6 @@ struct DocumentImagePicker: UIViewControllerRepresentable {
         }
         
         func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
-            imagePicker.completion([])
             imagePicker.isPresented = false
         }
     }

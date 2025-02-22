@@ -1,5 +1,5 @@
 //
-//  PDFEditorViewModel.swift
+//  EditorViewModel.swift
 //  PDFImageCreator
 //
 //  Created by Всеволод Донченко on 21.02.2025.
@@ -9,47 +9,47 @@ import Foundation
 import PhotosUI
 import os
 
-enum PDFEditorInput {
+enum EditorInput {
     case gallery(results: [PHPickerResult])
     case documents(urls: [URL])
 }
 
-enum PDFEditorState {
+enum EditorState: Equatable {
     case idle
     case converting
-    case converted(data: Data)
-    case failed(error: PDFEditorError)
+    case converted(url: URL)
+    case failed(error: EditorError)
 }
 
-enum PDFEditorError: Error {
+enum EditorError: Error {
     case cannotLoadImage
     case noImageForResult
     case noDataForUrl
+    case cannotSaveFile
 }
 
-final class PDFEditorViewModel: ObservableObject {
+final class EditorViewModel: ObservableObject {
     
-    @Published var state: PDFEditorState = .idle
+    @Published var state: EditorState = .idle
     
-    private let input: PDFEditorInput
     private let converter: PDFConverter
     
-    private var convertTask: Task<Void, Never>?
+    private var convertTask: Task<Void, Error>?
     
     private lazy var logger = os.Logger(subsystem: Bundle.main.appId, category: "PDFEditorViewModel")
     
-    init(input: PDFEditorInput, converter: PDFConverter = PDFConverterImpl()) {
-        self.input = input
+    init(converter: PDFConverter = PDFConverterImpl()) {
         self.converter = converter
     }
     
-    func convert() {
+    func convert(input: EditorInput) {
+        guard state == .idle else { return }
         state = .converting
 
         switch input {
         case .gallery(let results):
             convertTask = Task(priority: .userInitiated) {
-                await withTaskCancellationHandler {
+                try await withTaskCancellationHandler {
                     log("getting images from results")
                     
                     do {
@@ -59,13 +59,13 @@ final class PDFEditorViewModel: ObservableObject {
                         let data = converter.convert(images: images)
                         log("converted images to pdf data")
                         
-                        setState(.converted(data: data))
+                        let url = try await saveDataToTemp(data: data)
+                        log("saved data to file")
                         
-                    } catch let error as PDFEditorError {
+                        setState(.converted(url: url))
+                        
+                    } catch let error as EditorError {
                         setState(.failed(error: error))
-                        
-                    } catch {
-                        assertionFailure("unknown error: \(error)")
                     }
                     
                 } onCancel: {
@@ -75,7 +75,7 @@ final class PDFEditorViewModel: ObservableObject {
             
         case .documents(let urls):
             convertTask = Task(priority: .userInitiated) {
-                await withTaskCancellationHandler {
+                try await withTaskCancellationHandler {
                     log("getting images by urls")
                     
                     do {
@@ -85,13 +85,13 @@ final class PDFEditorViewModel: ObservableObject {
                         let data = converter.convert(images: images)
                         log("converted images to pdf data")
                         
-                        setState(.converted(data: data))
+                        let url = try await saveDataToTemp(data: data)
+                        log("saved data to file")
                         
-                    } catch let error as PDFEditorError {
+                        setState(.converted(url: url))
+                        
+                    } catch let error as EditorError {
                         setState(.failed(error: error))
-                        
-                    } catch {
-                        assertionFailure("unknown error: \(error)")
                     }
                     
                 } onCancel: {
@@ -102,11 +102,12 @@ final class PDFEditorViewModel: ObservableObject {
     }
     
     func cancel() {
+        guard state != .idle else { return }
         convertTask?.cancel()
         convertTask = nil
     }
     
-    private func setState(_ state: PDFEditorState) {
+    private func setState(_ state: EditorState) {
         Task.delayed(byTimeInterval: 1) { @MainActor [weak self] in
             guard let self else { return }
             self.state = state
@@ -121,15 +122,15 @@ final class PDFEditorViewModel: ObservableObject {
                         return try await result.itemProvider.loadImage()
                         
                     } catch {
-                        logger.error("📁 PDFEditorViewModel: error in loading image: \(error)")
-                        throw PDFEditorError.cannotLoadImage
+                        logger.error("📁 EditorViewModel: error in loading image: \(error)")
+                        throw EditorError.cannotLoadImage
                     }
                 }
             }
             
             var images = [UIImage]()
             for try await image in group {
-                guard let image else { throw PDFEditorError.noImageForResult }
+                guard let image else { throw EditorError.noImageForResult }
                 images.append(image)
             }
             
@@ -146,19 +147,34 @@ final class PDFEditorViewModel: ObservableObject {
                         return UIImage(data: data)
                         
                     } catch {
-                        logger.error("📁 PDFEditorViewModel: error in getting data: \(error)")
-                        throw PDFEditorError.noDataForUrl
+                        logger.error("📁 EditorViewModel: error in getting data: \(error)")
+                        throw EditorError.noDataForUrl
                     }
                 }
             }
             
             var images = [UIImage]()
             for try await image in group {
-                guard let image else { throw PDFEditorError.cannotLoadImage }
+                guard let image else { throw EditorError.cannotLoadImage }
                 images.append(image)
             }
             
             return images
+        }
+    }
+    
+    private func saveDataToTemp(data: Data) async throws -> URL {
+        try await withCheckedThrowingContinuation { continuation in
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("Untitled.pdf")
+            
+            do {
+                try data.write(to: url)
+                continuation.resume(returning: url)
+                
+            } catch {
+                log("saving file error: \(error)")
+                continuation.resume(throwing: EditorError.cannotSaveFile)
+            }
         }
     }
     

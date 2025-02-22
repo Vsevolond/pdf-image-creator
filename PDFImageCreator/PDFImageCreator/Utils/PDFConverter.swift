@@ -15,17 +15,16 @@ final class PDFConverterImpl: PDFConverter {
     
     func convert(images: [UIImage]) -> Data {
         let pdfData = NSMutableData()
-        var maxSize: CGSize = .zero
+        var maxWidth: CGFloat = .zero
         
         for image in images {
-            maxSize.width = max(maxSize.width, image.size.width)
-            maxSize.height = max(maxSize.height, image.size.height)
+            maxWidth = max(maxWidth, image.size.width)
         }
         
         UIGraphicsBeginPDFContextToData(pdfData, .zero, nil)
         
         for image in images {
-            let pdfSize = image.size.expanded(to: maxSize)
+            let pdfSize = image.size.expanded(toWidth: maxWidth)
             let pdfRect = CGRect(origin: .zero, size: pdfSize)
             
             UIGraphicsBeginPDFPageWithInfo(pdfRect, nil)

@@ -8,24 +8,13 @@
 import SwiftUI
 import PDFKit
 
-enum PDFRepresentation {
-    case data(_ data: Data)
-    case url(_ url: URL)
-}
-
 struct PDFPreview: UIViewRepresentable {
     
-    let representation: PDFRepresentation
+    let url: URL
     
     func makeUIView(context: Context) -> some UIView {
         let view = PDFView()
-        
-        let document = {
-            switch representation {
-            case .data(let data): PDFDocument(data: data)
-            case .url(let url): PDFDocument(url: url)
-            }
-        }()
+        let document = PDFDocument(url: url)
         
         view.document = document
         view.autoScales = true

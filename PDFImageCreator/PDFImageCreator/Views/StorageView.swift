@@ -1,5 +1,5 @@
 //
-//  MainView.swift
+//  StorageView.swift
 //  PDFImageCreator
 //
 //  Created by Всеволод Донченко on 20.02.2025.
@@ -7,22 +7,25 @@
 
 import SwiftUI
 
-struct MainView: View {
+struct StorageView: View {
+    
+    @StateObject private var model = StorageViewModel()
     
     @State private var galleryPresented = false
     @State private var documentsPresented = false
     @State private var editorPresented = false
     
-    @State private var editorInput: PDFEditorInput?
+    @State private var editorInput: EditorInput?
     
     var body: some View {
         NavigationView {
             VStack {
-                List {
-                    
+                List(model.files, id: \.id) { file in
+                    Text(file.name)
                 }
+                .listStyle(.plain)
                 
-                NavigationLink(destination: EditorView, isActive: $editorPresented) {
+                NavigationLink(destination: EditView, isActive: $editorPresented) {
                     EmptyView()
                 }
             }
@@ -32,6 +35,7 @@ struct MainView: View {
                 ToolbarMenu
             }
         }
+        .accentColor(.indigo)
         .sheet(isPresented: $galleryPresented) {
             GalleryImagePicker(isPresented: $galleryPresented) { results in
                 openEditor(withInput: .gallery(results: results))
@@ -41,6 +45,9 @@ struct MainView: View {
             DocumentImagePicker(isPresented: $documentsPresented) { results in
                 openEditor(withInput: .documents(urls: results))
             }
+        }
+        .onAppear {
+            model.fetch()
         }
     }
     
@@ -62,22 +69,20 @@ struct MainView: View {
 
         } label: {
             Image(systemName: "plus")
-                .foregroundStyle(.indigo)
         }
     }
     
     @ViewBuilder
-    private var EditorView: some View {
+    private var EditView: some View {
         if let editorInput {
-            let model = PDFEditorViewModel(input: editorInput)
-            PDFEditorView(model: model)
+            EditorView(input: editorInput, storageModel: model)
             
         } else {
             EmptyView()
         }
     }
     
-    private func openEditor(withInput input: PDFEditorInput) {
+    private func openEditor(withInput input: EditorInput) {
         editorInput = input
         editorPresented = true
     }
@@ -87,5 +92,5 @@ private let galleryIcon = "photo"
 private let documentsIcon = "folder"
 
 #Preview {
-    MainView()
+    StorageView()
 }
