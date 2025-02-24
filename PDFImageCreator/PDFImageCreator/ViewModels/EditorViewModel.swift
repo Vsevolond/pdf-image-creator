@@ -115,11 +115,12 @@ final class EditorViewModel: ObservableObject {
     }
     
     private func loadImagesFromGallery(_ results: [PHPickerResult]) async throws -> [UIImage] {
-        try await withThrowingTaskGroup(of: UIImage?.self, returning: [UIImage].self) { [logger] group in
-            for result in results {
+        try await withThrowingTaskGroup(of: (Int, UIImage?).self, returning: [UIImage].self) { [logger] group in
+            for (index, result) in results.enumerated() {
                 group.addTask {
                     do {
-                        return try await result.itemProvider.loadImage()
+                        let image = try await result.itemProvider.loadImage()
+                        return (index, image)
                         
                     } catch {
                         logger.error("📁 EditorViewModel: error in loading image: \(error)")
@@ -128,23 +129,26 @@ final class EditorViewModel: ObservableObject {
                 }
             }
             
-            var images = [UIImage]()
-            for try await image in group {
+            var images: [UIImage?] = Array(repeating: nil, count: results.count)
+            
+            for try await (index, image) in group {
                 guard let image else { throw EditorError.noImageForResult }
-                images.append(image)
+                images[index] = image
             }
             
-            return images
+            return images.compactMap { $0 }
         }
     }
     
     private func loadImagesFromDocuments(_ urls: [URL]) async throws -> [UIImage] {
-        try await withThrowingTaskGroup(of: UIImage?.self, returning: [UIImage].self) { [logger] group in
-            for url in urls {
+        try await withThrowingTaskGroup(of: (Int, UIImage?).self, returning: [UIImage].self) { [logger] group in
+            for (index, url) in urls.enumerated() {
                 group.addTask {
                     do {
                         let data = try Data(contentsOf: url)
-                        return UIImage(data: data)
+                        let image = UIImage(data: data)
+                        
+                        return (index, image)
                         
                     } catch {
                         logger.error("📁 EditorViewModel: error in getting data: \(error)")
@@ -153,13 +157,14 @@ final class EditorViewModel: ObservableObject {
                 }
             }
             
-            var images = [UIImage]()
-            for try await image in group {
+            var images: [UIImage?] = Array(repeating: nil, count: urls.count)
+            
+            for try await (index, image) in group {
                 guard let image else { throw EditorError.cannotLoadImage }
-                images.append(image)
+                images[index] = image
             }
             
-            return images
+            return images.compactMap { $0 }
         }
     }
     

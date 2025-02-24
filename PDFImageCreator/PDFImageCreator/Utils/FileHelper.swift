@@ -44,6 +44,7 @@ final class FileHelperImpl: FileHelper {
             
             do {
                 try manager.copyItem(at: url, to: newUrl)
+                log("file copied")
                 continuation.resume(returning: newUrl)
                 
             } catch {
@@ -57,6 +58,7 @@ final class FileHelperImpl: FileHelper {
         try await withCheckedThrowingContinuation { continuation in
             do {
                 try manager.removeItem(at: url)
+                log("file removed")
                 continuation.resume()
                 
             } catch {

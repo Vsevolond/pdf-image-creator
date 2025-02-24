@@ -48,7 +48,7 @@ final class StorageViewModel: ObservableObject {
             
             do {
                 let objects = try await storage.fetch()
-                let models = objects.map { FileModel(from: $0) }
+                let models = objects.map { FileModel(from: $0) }.sorted { $0.date > $1.date }
                 
                 Task { @MainActor in
                     self.files = models

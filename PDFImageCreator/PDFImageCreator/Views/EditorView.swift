@@ -40,6 +40,27 @@ struct EditorView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .alert("", isPresented: $fileExistsPresented) {
+            Button("ОК") {
+                fileExistsPresented = false
+            }
+        } message: {
+            Text("Файл с таким именем уже существует.")
+        }
+        .alert("Ошибка", isPresented: $errorPresented) {
+            Button("ОК") {
+                errorPresented = false
+            }
+        } message: {
+            Text("Произошла ошибка при сохранении файла. Пожалуйста, попробуйте еще раз или создайте другой файл.")
+        }
+        .alert("", isPresented: $successPresented) {
+            Button("ОК") {
+                successPresented = false
+            }
+        } message: {
+            Text("Файл успешно сохранен.")
+        }
         .onAppear {
             editorModel.convert(input: input)
         }
@@ -65,28 +86,6 @@ struct EditorView: View {
             .sheet(isPresented: $sharePresented) {
                 ShareSheet(items: [url])
             }
-            .alert("", isPresented: $fileExistsPresented) {
-                Button("ОК") {
-                    fileExistsPresented = false
-                }
-            } message: {
-                Text("Файл с таким именем уже существует.")
-            }
-            .alert("Ошибка", isPresented: $errorPresented) {
-                Button("ОК") {
-                    errorPresented = false
-                }
-            } message: {
-                Text("Произошла ошибка при сохранении файла. Пожалуйста, попробуйте еще раз или создайте другой файл.")
-            }
-            .alert("", isPresented: $successPresented) {
-                Button("ОК") {
-                    successPresented = false
-                }
-            } message: {
-                Text("Файл успешно сохранен.")
-            }
-
     }
     
     private var LoadingView: some View {
