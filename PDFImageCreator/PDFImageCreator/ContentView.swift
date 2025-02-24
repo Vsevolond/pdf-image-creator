@@ -11,7 +11,7 @@ struct ContentView: View {
     @AppStorage(.welcomeScreenShowStatus) var isWelcomeScreenShown = false
     
     var body: some View {
-        ZStack {
+        Group {
             if isWelcomeScreenShown {
                 StorageView()
                     .transition(.opacity)

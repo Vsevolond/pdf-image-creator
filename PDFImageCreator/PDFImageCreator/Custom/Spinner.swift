@@ -7,58 +7,43 @@
 
 import SwiftUI
 
-import SwiftUI
-
 struct Spinner: View {
-    let count: Int
-    let size: CGFloat
+    let lineWidth: CGFloat
     let color: Color
     
-    @State private var isAnimating = false
+    @State private var length: CGFloat = 0.8
+    @State private var degree: Double = 0
 
     var body: some View {
-        GeometryReader { geometry in
-            ZStack {
-                ForEach(0..<count, id: \.self) { index in
-                    item(forIndex: index, in: geometry.size)
+        Circle()
+            .trim(from: 0.1, to: length)
+            .stroke(color, style: StrokeStyle(
+                lineWidth: lineWidth,
+                lineCap: .round,
+                lineJoin: .round
+            ))
+            .rotationEffect(.degrees(degree))
+            .onAppear {
+                withAnimation(
+                    Animation.easeInOut(duration: 1.5)
+                        .repeatForever(autoreverses: true)
+                ) {
+                    length = 0.2
+                }
+
+                withAnimation(
+                    Animation.linear(duration: 1)
+                        .repeatForever(autoreverses: false)
+                ) {
+                    degree += 360
                 }
             }
-            .frame(width: geometry.size.width, height: geometry.size.height)
-            .animation(.easeInOut(duration: 1).repeatForever(autoreverses: false), value: isAnimating)
-        }
-        .aspectRatio(contentMode: .fit)
-        .onAppear {
-            isAnimating = true
-        }
-        .onDisappear {
-            isAnimating = false
-        }
-    }
-
-    private func item(forIndex index: Int, in geometrySize: CGSize) -> some View {
-        let angle = 2 * CGFloat.pi / CGFloat(count) * CGFloat(index)
-        let radius = (geometrySize.width / 2 - size / 2)
-        let x = radius * cos(angle)
-        let y = radius * sin(angle)
-
-        return Circle()
-            .frame(width: size, height: size)
-            .foregroundStyle(color)
-            .scaleEffect(isAnimating ? 0.3 : 1)
-            .opacity(isAnimating ? 0.25 : 1)
-            .offset(x: x, y: y)
-            .animation(
-                .easeInOut(duration: 1)
-                    .repeatForever(autoreverses: true)
-                    .delay(Double(index) / Double(count)),
-                value: isAnimating
-            )
     }
 }
 
 struct SaveSpinner_Previews: PreviewProvider {
     static var previews: some View {
-        Spinner(count: 8, size: 20, color: .indigo)
-            .frame(width: 100, height: 100, alignment: .center)
+        Spinner(lineWidth: 10, color: .indigo)
+            .frame(width: 100, height: 100)
     }
 }

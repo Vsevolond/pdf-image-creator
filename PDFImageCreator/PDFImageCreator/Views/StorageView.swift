@@ -20,8 +20,12 @@ struct StorageView: View {
     
     var body: some View {
         NavigationView {
-            VStack {
-                ZStack {
+            ZStack {
+                NavigationLink(destination: EditView, isActive: $editorPresented) {
+                    EmptyView()
+                }
+                
+                Group {
                     switch model.state {
                     case .idle, .loading:
                         LoadingView
@@ -32,10 +36,6 @@ struct StorageView: View {
                     case .failed:
                         ErrorView
                     }
-                }
-                
-                NavigationLink(destination: EditView, isActive: $editorPresented) {
-                    EmptyView()
                 }
             }
             .navigationTitle("Сохраненное")

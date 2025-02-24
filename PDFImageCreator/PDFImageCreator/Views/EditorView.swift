@@ -27,7 +27,7 @@ struct EditorView: View {
     }
     
     var body: some View {
-        ZStack {
+        Group {
             switch editorModel.state {
             case .idle, .converting:
                 LoadingView
@@ -89,7 +89,7 @@ struct EditorView: View {
     }
     
     private var LoadingView: some View {
-        Spinner(count: 8, size: 20, color: .indigo)
+        Spinner(lineWidth: 10, color: .indigo)
             .frame(width: 100, height: 100)
     }
     
