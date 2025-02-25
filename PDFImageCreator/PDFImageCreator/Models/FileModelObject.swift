@@ -22,7 +22,7 @@ extension FileModelObject {
         
         self.id = model.id
         self.name = model.name
-        self.path = model.url?.absoluteString ?? ""
+        self.path = model.url.path
         self.date = model.date
     }
 }

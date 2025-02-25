@@ -1,5 +1,5 @@
 //
-//  ThumbnailView.swift
+//  AsyncThumbnailView.swift
 //  PDFImageCreator
 //
 //  Created by Всеволод Донченко on 22.02.2025.

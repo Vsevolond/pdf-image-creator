@@ -10,10 +10,10 @@ import Foundation
 struct FileModel {
     let id: UUID
     let name: String
-    let url: URL?
+    let url: URL
     let date: Date
     
-    init(id: UUID = UUID(), name: String, url: URL?, date: Date = Date.now) {
+    init(id: UUID = UUID(), name: String, url: URL, date: Date = Date.now) {
         self.id = id
         self.name = name
         self.url = url
@@ -26,7 +26,7 @@ extension FileModel {
     init(from object: FileModelObject) {
         self.id = object.id
         self.name = object.name
-        self.url = URL(string: object.path)
+        self.url = URL(fileURLWithPath: object.path)
         self.date = object.date
     }
 }

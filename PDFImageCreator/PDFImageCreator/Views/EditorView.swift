@@ -7,6 +7,29 @@
 
 import SwiftUI
 
+private enum EditorAlertType {
+    case none
+    case successfullySaved
+    case fileWithSameNameExists
+    case somethingWrong
+    
+    var title: String {
+        switch self {
+        case .none, .successfullySaved: ""
+        case .fileWithSameNameExists, .somethingWrong: "Ошибка"
+        }
+    }
+    
+    var message: String {
+        switch self {
+        case .none: ""
+        case .successfullySaved: "Файл успешно сохранен."
+        case .fileWithSameNameExists: "Файл с таким именем уже существует."
+        case .somethingWrong: "Произошла ошибка при сохранении файла. Пожалуйста, попробуйте еще раз или создайте другой файл."
+        }
+    }
+}
+
 struct EditorView: View {
     private let input: EditorInput
     
@@ -15,9 +38,8 @@ struct EditorView: View {
     
     @State private var sharePresented = false
     
-    @State private var fileExistsPresented = false
-    @State private var errorPresented = false
-    @State private var successPresented = false
+    @State private var alertPresented = false
+    @State private var alertType: EditorAlertType = .none
     
     @State private var fileName = "Untitled"
     
@@ -40,26 +62,14 @@ struct EditorView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
-        .alert("", isPresented: $fileExistsPresented) {
+        .alert(alertType.title, isPresented: $alertPresented) {
             Button("ОК") {
-                fileExistsPresented = false
+                alertPresented = false
+                alertType = .none
             }
+            
         } message: {
-            Text("Файл с таким именем уже существует.")
-        }
-        .alert("Ошибка", isPresented: $errorPresented) {
-            Button("ОК") {
-                errorPresented = false
-            }
-        } message: {
-            Text("Произошла ошибка при сохранении файла. Пожалуйста, попробуйте еще раз или создайте другой файл.")
-        }
-        .alert("", isPresented: $successPresented) {
-            Button("ОК") {
-                successPresented = false
-            }
-        } message: {
-            Text("Файл успешно сохранен.")
+            Text(alertType.message)
         }
         .onAppear {
             editorModel.convert(input: input)
@@ -101,7 +111,7 @@ struct EditorView: View {
                 .foregroundStyle(.red)
                 .frame(width: 40)
             
-            Text("Произошла ошибка при конвертации изображений в PDF. Пожалуйста, убедитесь, что файлы поддерживаются и попробуйте снова.")
+            Text(errorText)
                 .font(.headline)
                 .multilineTextAlignment(.center)
         }
@@ -112,16 +122,19 @@ struct EditorView: View {
         Menu {
             Button {
                 storageModel.tryToSaveFile(withName: fileName, from: url) {
-                    successPresented.toggle()
+                    alertType = .successfullySaved
+                    alertPresented.toggle()
                     
                 } onError: { error in
                     switch error {
                     case .fileExists:
-                        fileExistsPresented.toggle()
+                        alertType = .fileWithSameNameExists
                         
                     case .fileSavingFailed, .storageSavingFailed:
-                        errorPresented.toggle()
+                        alertType = .somethingWrong
                     }
+                    
+                    alertPresented.toggle()
                 }
 
             } label: {
@@ -146,3 +159,5 @@ private let errorIcon = "exclamationmark.triangle.fill"
 private let toolbarIcon = "ellipsis.circle"
 private let saveIcon = "tray.and.arrow.down"
 private let shareIcon = "square.and.arrow.up"
+
+private let errorText = "Произошла ошибка при конвертации изображений в PDF. Пожалуйста, убедитесь, что файлы поддерживаются и попробуйте снова."

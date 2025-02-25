@@ -26,6 +26,7 @@ enum EditorError: Error {
     case noImageForResult
     case noDataForUrl
     case cannotSaveFile
+    case noImages
 }
 
 final class EditorViewModel: ObservableObject {
@@ -48,63 +49,54 @@ final class EditorViewModel: ObservableObject {
 
         switch input {
         case .gallery(let results):
-            convertTask = Task(priority: .userInitiated) {
-                try await withTaskCancellationHandler {
-                    log("getting images from results")
-                    
-                    do {
-                        let images = try await loadImagesFromGallery(results)
-                        log("successfully got images from results")
-                        
-                        let data = converter.convert(images: images)
-                        log("converted images to pdf data")
-                        
-                        let url = try await saveDataToTemp(data: data)
-                        log("saved data to file")
-                        
-                        setState(.converted(url: url))
-                        
-                    } catch let error as EditorError {
-                        setState(.failed(error: error))
-                    }
-                    
-                } onCancel: {
-                    log("cancelled converting")
-                }
-            }
+            convertTask = makeConvertTask(withLoader: { [weak self] in
+                guard let self else { return [] }
+                return try await loadImagesFromGallery(results)
+            })
             
         case .documents(let urls):
-            convertTask = Task(priority: .userInitiated) {
-                try await withTaskCancellationHandler {
-                    log("getting images by urls")
-                    
-                    do {
-                        let images = try await loadImagesFromDocuments(urls)
-                        log("successfully got images by urls")
-                        
-                        let data = converter.convert(images: images)
-                        log("converted images to pdf data")
-                        
-                        let url = try await saveDataToTemp(data: data)
-                        log("saved data to file")
-                        
-                        setState(.converted(url: url))
-                        
-                    } catch let error as EditorError {
-                        setState(.failed(error: error))
-                    }
-                    
-                } onCancel: {
-                    log("cancelled converting")
-                }
-            }
+            convertTask = makeConvertTask(withLoader: { [weak self] in
+                guard let self else { return [] }
+                return try await loadImagesFromDocuments(urls)
+            })
         }
     }
     
     func cancel() {
         guard state != .idle else { return }
+        
         convertTask?.cancel()
         convertTask = nil
+    }
+    
+    private func makeConvertTask(
+        withLoader imagesLoader: @escaping () async throws -> [UIImage]
+    ) -> Task<Void, Error> {
+        Task(priority: .userInitiated) {
+            try await withTaskCancellationHandler {
+                log("getting images")
+                
+                do {
+                    let images = try await imagesLoader()
+                    log("successfully got images")
+                    
+                    let data = converter.convert(images: images)
+                    log("converted images to pdf data")
+                    
+                    let url = try await saveDataToTemp(data: data)
+                    log("saved data to file")
+                    
+                    setState(.converted(url: url))
+                    
+                } catch let error as EditorError {
+                    setState(.failed(error: error))
+                }
+                
+            } onCancel: {
+                log("cancelled converting")
+            }
+
+        }
     }
     
     private func setState(_ state: EditorState) {
@@ -136,7 +128,10 @@ final class EditorViewModel: ObservableObject {
                 images[index] = image
             }
             
-            return images.compactMap { $0 }
+            let result = images.compactMap { $0 }
+            guard !result.isEmpty else { throw EditorError.noImages }
+            
+            return result
         }
     }
     
@@ -164,7 +159,10 @@ final class EditorViewModel: ObservableObject {
                 images[index] = image
             }
             
-            return images.compactMap { $0 }
+            let result = images.compactMap { $0 }
+            guard !result.isEmpty else { throw EditorError.noImages }
+            
+            return result
         }
     }
     
@@ -193,8 +191,15 @@ private extension NSItemProvider {
     func loadImage() async throws -> UIImage? {
         try await withCheckedThrowingContinuation { continuation in
             loadObject(ofClass: UIImage.self) { item, error in
-                if let error { continuation.resume(throwing: error) }
-                continuation.resume(returning: item as? UIImage)
+                if let error {
+                    continuation.resume(throwing: error)
+                    
+                } else if let image = item as? UIImage {
+                    continuation.resume(returning: image)
+                    
+                } else {
+                    continuation.resume(returning: nil)
+                }
             }
         }
     }

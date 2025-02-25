@@ -50,13 +50,13 @@ final class StorageViewModel: ObservableObject {
                 let objects = try await storage.fetch()
                 let models = objects.map { FileModel(from: $0) }.sorted { $0.date > $1.date }
                 
-                Task { @MainActor in
+                Task(priority: .high) { @MainActor in
                     self.files = models
                     self.state = .loaded
                 }
                 
             } catch is StorageServiceError {
-                Task { @MainActor in
+                Task(priority: .high) { @MainActor in
                     self.state = .failed
                 }
             }
@@ -67,7 +67,7 @@ final class StorageViewModel: ObservableObject {
         guard let (index, model) = files.enumerated().first(where: { $0.element.id == id }) else { return }
         
         files.remove(at: index)
-        if let url = model.url { deleteFile(at: url) }
+        deleteFile(at: model.url)
         
         Task(priority: .userInitiated) {
             do {
@@ -103,7 +103,7 @@ extension StorageViewModel {
                     let object = FileModelObject(from: model)
                     try await storage.save(object: object)
                     
-                    Task { @MainActor in
+                    Task(priority: .high) { @MainActor in
                         files.insert(model, at: 0)
                         onComplete()
                     }
@@ -111,7 +111,7 @@ extension StorageViewModel {
                 } catch is StorageServiceError {
                     deleteFile(at: newUrl)
                     
-                    Task { @MainActor in
+                    Task(priority: .high) { @MainActor in
                         onError(.storageSavingFailed)
                     }
                 }
@@ -119,12 +119,12 @@ extension StorageViewModel {
             } catch let error as FileHelperError {
                 switch error {
                 case .fileExists:
-                    Task { @MainActor in
+                    Task(priority: .high) { @MainActor in
                         onError(.fileExists)
                     }
                     
                 case .noDirectoryUrl, .savingFailed:
-                    Task { @MainActor in
+                    Task(priority: .high) { @MainActor in
                         onError(.fileSavingFailed)
                     }
                     

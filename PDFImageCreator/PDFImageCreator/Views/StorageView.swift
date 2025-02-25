@@ -8,14 +8,21 @@
 import SwiftUI
 import PDFKit
 
+private enum StorageSheetType: Equatable {
+    case none
+    case gallery
+    case documents
+    case share(url: URL)
+}
+
 struct StorageView: View {
     
     @StateObject private var model = StorageViewModel()
     
-    @State private var galleryPresented = false
-    @State private var documentsPresented = false
-    @State private var editorPresented = false
+    @State private var sheetPresented = false
+    @State private var sheetType: StorageSheetType = .none
     
+    @State private var editorPresented = false
     @State private var editorInput: EditorInput?
     
     var body: some View {
@@ -41,19 +48,40 @@ struct StorageView: View {
             .navigationTitle("Сохраненное")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
-                ToolbarMenu
+                ToolbarItem(placement: .topBarTrailing) {
+                    ToolbarMenu
+                }
             }
         }
         .accentColor(.indigo)
-        .sheet(isPresented: $galleryPresented) {
-            GalleryImagePicker(isPresented: $galleryPresented) { results in
-                openEditor(withInput: .gallery(results: results))
+        .sheet(
+            isPresented: $sheetPresented,
+            onDismiss: {
+                sheetType = .none
+            },
+            content: {
+                switch sheetType {
+                case .none:
+                    EmptyView()
+                    
+                case .gallery:
+                    GalleryImagePicker(isPresented: $sheetPresented) { results in
+                        openEditor(withInput: .gallery(results: results))
+                    }
+                    
+                case .documents:
+                    DocumentsImagePicker(isPresented: $sheetPresented) { results in
+                        openEditor(withInput: .documents(urls: results))
+                    }
+                    
+                case .share(let url):
+                    ShareSheet(items: [url])
+                }
             }
-        }
-        .sheet(isPresented: $documentsPresented) {
-            DocumentImagePicker(isPresented: $documentsPresented) { results in
-                openEditor(withInput: .documents(urls: results))
-            }
+        )
+        .onChange(of: sheetType) { type in
+            guard type != .none else { return }
+            sheetPresented.toggle()
         }
         .onAppear {
             model.fetch()
@@ -62,28 +90,48 @@ struct StorageView: View {
     
     private var FilesView: some View {
         List(model.files, id: \.id) { file in
-            HStack(alignment: .center, spacing: 8) {
-                if let url = file.url {
-                    AsyncThumbnailView(url: url)
+            NavigationLink {
+                PDFPreview(url: file.url)
+                    .navigationTitle(file.name)
+                    .navigationBarTitleDisplayMode(.inline)
+                
+            } label: {
+                HStack(alignment: .center, spacing: 8) {
+                    AsyncThumbnailView(url: file.url)
                         .clipShape(.rect(cornerRadius: 5))
                         .frame(width: 60, height: 60)
                     
-                } else {
-                    Image(systemName: documentIcon)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 60, height: 60)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(file.name)
+                            .font(.system(size: 18))
+                            .bold()
+                        
+                        Text(file.dateString)
+                            .font(.system(size: 16))
+                            .foregroundStyle(.gray)
+                    }
                 }
-                
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(file.name)
-                        .font(.system(size: 18))
-                        .bold()
+            }
+            .contextMenu {
+                Button {
+                    sheetType = .share(url: file.url)
                     
-                    Text(file.dateString)
-                        .font(.system(size: 16))
-                        .foregroundStyle(.gray)
+                } label: {
+                    Label("Поделиться", systemImage: shareIcon)
                 }
+
+                Button(role: .destructive) {
+                    
+                } label: {
+                    Label("Удалить", systemImage: deleteIcon)
+                }
+
+                Button {
+                    
+                } label: {
+                    Label("Объединить", systemImage: unionIcon)
+                }
+
             }
         }
         .listStyle(.plain)
@@ -116,7 +164,7 @@ struct StorageView: View {
                 .foregroundStyle(.red)
                 .frame(width: 40)
             
-            Text("Произошла ошибка при извлечении сохраненных файлов. Пожалуйста, перезагрузите приложение.")
+            Text(errorText)
                 .font(.headline)
                 .multilineTextAlignment(.center)
         }
@@ -126,14 +174,14 @@ struct StorageView: View {
     private var ToolbarMenu: some View {
         Menu {
             Button {
-                galleryPresented.toggle()
+                sheetType = .gallery
                 
             } label: {
                 Label("Из галереи", systemImage: galleryIcon)
             }
             
             Button {
-                documentsPresented.toggle()
+                sheetType = .documents
                 
             } label: {
                 Label("Из файлов", systemImage: documentsIcon)
@@ -172,7 +220,11 @@ private extension FileModel {
 private let galleryIcon = "photo"
 private let documentsIcon = "folder"
 private let errorIcon = "exclamationmark.triangle.fill"
-private let documentIcon = "text.document.fill"
+private let shareIcon = "square.and.arrow.up"
+private let deleteIcon = "trash"
+private let unionIcon = "square.2.layers.3d"
+
+private let errorText = "Произошла ошибка при извлечении сохраненных файлов. Пожалуйста, попробуйте перезагрузить страницу."
 
 #Preview {
     StorageView()

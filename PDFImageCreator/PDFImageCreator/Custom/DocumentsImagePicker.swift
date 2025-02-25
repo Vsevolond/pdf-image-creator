@@ -1,5 +1,5 @@
 //
-//  DocumentImagePicker.swift
+//  DocumentsImagePicker.swift
 //  PDFImageCreator
 //
 //  Created by Всеволод Донченко on 20.02.2025.
@@ -8,7 +8,7 @@
 import SwiftUI
 import PhotosUI
 
-struct DocumentImagePicker: UIViewControllerRepresentable {
+struct DocumentsImagePicker: UIViewControllerRepresentable {
     
     @Binding var isPresented: Bool
     
@@ -29,9 +29,9 @@ struct DocumentImagePicker: UIViewControllerRepresentable {
     
     final class Coordinator: NSObject, UIDocumentPickerDelegate {
         
-        let imagePicker: DocumentImagePicker
+        let imagePicker: DocumentsImagePicker
         
-        init(imagePicker: DocumentImagePicker) {
+        init(imagePicker: DocumentsImagePicker) {
             self.imagePicker = imagePicker
         }
         
