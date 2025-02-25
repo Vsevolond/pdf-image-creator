@@ -36,13 +36,6 @@ struct WelcomeView: View {
                 )
                 
                 CapabilityView(
-                    icon: mergeIcon,
-                    color: .red,
-                    title: "Объединяйте",
-                    description: mergeText
-                )
-                
-                CapabilityView(
                     icon: saveIcon,
                     color: .yellow,
                     title: "Сохраняйте",
@@ -99,12 +92,10 @@ struct WelcomeView: View {
 }
 
 private let convertIcon = "arrow.trianglehead.2.clockwise.rotate.90"
-private let mergeIcon = "square.2.layers.3d"
 private let saveIcon = "tray.and.arrow.down"
 private let shareIcon = "square.and.arrow.up"
 
 private let convertText = "Преобразование изображений из галереи или файловой системы в PDF-документ. Поддерживает обработку нескольких изображений за раз."
-private let mergeText = "Слияние нескольких PDF-документов в один файл. Удобно для создания единого документа из разных источников."
 private let saveText = "Сохранение готового PDF-документа на устройство. Можно выбрать папку или добавить файл в Загрузки."
 private let shareText = "Быстрая отправка созданного PDF через мессенджеры, почту или другие приложения."
 

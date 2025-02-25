@@ -25,6 +25,8 @@ struct StorageView: View {
     @State private var editorPresented = false
     @State private var editorInput: EditorInput?
     
+    @State private var alertPresented = false
+    
     var body: some View {
         NavigationView {
             ZStack {
@@ -121,18 +123,26 @@ struct StorageView: View {
                 }
 
                 Button(role: .destructive) {
+                    alertPresented.toggle()
                     
                 } label: {
                     Label("Удалить", systemImage: deleteIcon)
                 }
-
-                Button {
-                    
-                } label: {
-                    Label("Объединить", systemImage: unionIcon)
-                }
-
             }
+            .alert("", isPresented: $alertPresented,
+                actions: {
+                    Button("Удалить", role: .destructive) {
+                        model.delete(id: file.id)
+                    }
+                    
+                    Button("Отменить", role: .cancel) {
+                        alertPresented = false
+                    }
+                },
+                message: {
+                    Text("Точно хотите удалить файл?")
+                }
+            )
         }
         .listStyle(.plain)
     }
@@ -222,7 +232,6 @@ private let documentsIcon = "folder"
 private let errorIcon = "exclamationmark.triangle.fill"
 private let shareIcon = "square.and.arrow.up"
 private let deleteIcon = "trash"
-private let unionIcon = "square.2.layers.3d"
 
 private let errorText = "Произошла ошибка при извлечении сохраненных файлов. Пожалуйста, попробуйте перезагрузить страницу."
 
