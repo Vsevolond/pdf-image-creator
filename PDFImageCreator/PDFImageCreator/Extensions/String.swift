@@ -8,4 +8,5 @@
 extension String {
     
     static let welcomeScreenShowStatus = "welcomeScreenShowStatus"
+    static let filesInterface = "filesInterface"
 }

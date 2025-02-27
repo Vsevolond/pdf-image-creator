@@ -63,15 +63,15 @@ final class StorageViewModel: ObservableObject {
         }
     }
     
-    func delete(id: UUID) {
-        guard let (index, model) = files.enumerated().first(where: { $0.element.id == id }) else { return }
+    func delete(file: FileModel) {
+        guard let index = files.firstIndex(where: { $0.id == file.id }) else { return }
         
         files.remove(at: index)
-        deleteFile(at: model.url)
+        deleteFile(at: file.url)
         
         Task(priority: .userInitiated) {
             do {
-                try await storage.delete(id: id)
+                try await storage.delete(id: file.id)
                 
             } catch let error as StorageServiceError {
                 switch error {
@@ -79,7 +79,7 @@ final class StorageViewModel: ObservableObject {
                     assertionFailure("such error can't occur")
                     
                 case .noObject, .deletingFailed:
-                    log("file{id: \(id)} deleting failed")
+                    log("file{id: \(file.id)} deleting failed")
                 }
             }
         }

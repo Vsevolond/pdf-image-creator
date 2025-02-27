@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct FileModel {
+struct FileModel: Equatable {
     let id: UUID
     let name: String
     let url: URL

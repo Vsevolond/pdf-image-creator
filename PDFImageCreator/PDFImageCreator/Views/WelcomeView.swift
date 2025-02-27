@@ -8,7 +8,8 @@
 import SwiftUI
 
 struct WelcomeView: View {
-    @AppStorage(.welcomeScreenShowStatus) var isWelcomeScreenShown = false
+    @AppStorage(.welcomeScreenShowStatus)
+    private var isWelcomeScreenShown = false
     
     var body: some View {
         VStack {
