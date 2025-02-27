@@ -8,14 +8,21 @@
 import SwiftUI
 
 struct ContentView: View {
+    @AppStorage(.welcomeScreenShowStatus)
+    private var isWelcomeScreenShown = false
+    
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        Group {
+            if isWelcomeScreenShown {
+                StorageView()
+                    .transition(.opacity)
+                
+            } else {
+                WelcomeView()
+                    .transition(.opacity)
+            }
         }
-        .padding()
+        .animation(.snappy, value: isWelcomeScreenShown)
     }
 }
 
